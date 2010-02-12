@@ -47,15 +47,12 @@ require 'texticle/full_text_index'
 #     end
 #   end
 module Texticle
-  # The version of Texticle you are using.
-  VERSION = '1.0.2'
+  VERSION = '1.0.3'
 
-  # A list of full text indexes
   attr_accessor :full_text_indexes
 
-  ###
-  # Create an index with +name+ using +dictionary+
-  def index name = nil, dictionary = 'english', &block
+  # Create an index with +name+
+  def index name = nil, &block
     search_name = ['search', name].compact.join('_')
 
     class_eval do
@@ -63,16 +60,11 @@ module Texticle
         # Let's extract the individual terms to allow for quoted terms.
         term = term.scan(/"([^"]+)"|(\S+)/).flatten.compact.map {|lex| "'#{lex}'"}.join(' & ')
         {
-          :select => "#{table_name}.*, ts_rank_cd((#{full_text_indexes.first.to_s}),
-            to_tsquery(#{connection.quote(term)})) as rank",
-          :conditions =>
-            ["#{full_text_indexes.first.to_s} @@ to_tsquery(?)", term],
-          :order => 'rank DESC'
+          :conditions => ["MATCH(#{full_text_indexes.first.to_s}) AGAINST (?)", term],
         }
       }
     end
     index_name = [table_name, name, 'fts_idx'].compact.join('_')
-    (self.full_text_indexes ||= []) <<
-      FullTextIndex.new(index_name, dictionary, self, &block)
+    (self.full_text_indexes ||= []) << FullTextIndex.new(index_name, self, &block)
   end
 end

@@ -7,68 +7,56 @@ class TestFullTextIndex < TexticleTestCase
   end
 
   def test_initialize
-    fti = Texticle::FullTextIndex.new('ft_index', 'english', @fm) do
-      name
-      value 'A'
+    fti = Texticle::FullTextIndex.new('ft_index', @fm) do
+      title
+      body 'A'
     end
-    assert_equal 'name',  fti.index_columns['none'].first
-    assert_equal 'value', fti.index_columns['A'].first
+    assert_equal 'title',  fti.index_columns['none'].first
+    assert_equal 'body',   fti.index_columns['A'].first
   end
 
   def test_destroy
-    fti = Texticle::FullTextIndex.new('ft_index', 'english', @fm) do
-      name
-      value 'A'
+    fti = Texticle::FullTextIndex.new('ft_index', @fm) do
+      title
+      body 'A'
     end
     fti.destroy
     assert @fm.connected
     assert_equal 1, @fm.executed.length
-    executed = @fm.executed.first
-    assert_match "DROP index IF EXISTS #{fti.instance_variable_get(:@name)}", executed
+    executed =      @fm.executed.first
+    assert_equal "ALTER TABLE fake_model DROP INDEX title", executed
   end
 
   def test_create
-    fti = Texticle::FullTextIndex.new('ft_index', 'english', @fm) do
-      name
-      value 'A'
+    fti = Texticle::FullTextIndex.new('ft_index', @fm) do
+      title
+      body 'A'
     end
     fti.create
     assert @fm.connected
     assert_equal 1, @fm.executed.length
     executed = @fm.executed.first
     assert_match fti.to_s, executed
-    assert_match "CREATE index #{fti.instance_variable_get(:@name)}", executed
-    assert_match "ON #{@fm.table_name}", executed
+    assert_equal("ALTER TABLE fake_model ADD FULLTEXT (`title`, `body`)", executed)
   end
 
-  def test_to_s_no_weight
-    fti = Texticle::FullTextIndex.new('ft_index', 'english', @fm) do
-      name
+  def test_columns
+    fti = Texticle::FullTextIndex.new('ft_index', @fm) do
+      title
+      body 'A'
     end
-    assert_equal "to_tsvector('english', coalesce(#{@fm.table_name}.name, ''))", fti.to_s
+    fti.create
+    assert_equal(['title', 'body'], fti.columns)
+  end
+  
+  def test_strings
+    fti = Texticle::FullTextIndex.new('ft_index', @fm) do
+      title
+      body 'A'
+    end
+    fti.create
+    assert_equal("`title`, `body`", fti.to_s)
   end
 
-  def test_to_s_A_weight
-    fti = Texticle::FullTextIndex.new('ft_index', 'english', @fm) do
-      name 'A'
-    end
-    assert_equal "setweight(to_tsvector('english', coalesce(#{@fm.table_name}.name, '')), 'A')", fti.to_s
-  end
 
-  def test_to_s_multi_weight
-    fti = Texticle::FullTextIndex.new('ft_index', 'english', @fm) do
-      name  'A'
-      value 'A'
-      description 'B'
-    end
-    assert_equal "setweight(to_tsvector('english', coalesce(#{@fm.table_name}.name, '') || ' ' || coalesce(#{@fm.table_name}.value, '')), 'A') || ' ' || setweight(to_tsvector('english', coalesce(#{@fm.table_name}.description, '')), 'B')", fti.to_s
-  end
-
-  def test_mixed_weight
-    fti = Texticle::FullTextIndex.new('ft_index', 'english', @fm) do
-      name
-      value 'A'
-    end
-    assert_equal "setweight(to_tsvector('english', coalesce(#{@fm.table_name}.value, '')), 'A') || ' ' || to_tsvector('english', coalesce(#{@fm.table_name}.name, ''))", fti.to_s
-  end
 end
