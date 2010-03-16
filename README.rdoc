@@ -4,13 +4,15 @@
 
 == DESCRIPTION:
 
-Texticle exposes full text search capabilities from PostgreSQL, and allows
+This is a fork of the original, and wonderful texticle, it has all the Postgre stuff removed, and in it's place, MYSQL!
+
+This Texticle exposes full text search capabilities from MySQL, and allows
 you to declare full text indexes.  Texticle will extend ActiveRecord with
 named_scope methods making searching easy and fun!
 
 == FEATURES/PROBLEMS:
 
-* Only works with PostgreSQL
+* Only works with MySQL
 
 == SYNOPSIS:
 
